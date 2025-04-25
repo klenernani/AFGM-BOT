@@ -81,15 +81,25 @@ async def on_message(message):
 async def on_command_error(ctx, error):
     embed = discord.Embed(title="⚠️ Error Occurred", color=discord.Color.red())
     if isinstance(error, commands.MissingPermissions):
-        embed.add_field("❌ Missing Permissions", "You do not have permission to use this command.")
+        embed.add_field(name="❌ Missing Permissions",
+                        value="You do not have permission to use this command.",
+                        inline=False)
     elif isinstance(error, commands.MissingRequiredArgument):
-        embed.add_field("❓ Missing Argument", "A required argument is missing! Check `-help`.")
+        embed.add_field(name="❓ Missing Argument",
+                        value="A required argument is missing! Check `-help`.",
+                        inline=False)
     elif isinstance(error, commands.CommandNotFound):
-        embed.add_field("❓ Unknown Command", "This command does not exist. Use `-help`.")
+        embed.add_field(name="❓ Unknown Command",
+                        value="This command does not exist. Use `-help`.",
+                        inline=False)
     elif isinstance(error, commands.NotOwner):
-        embed.add_field("🚫 Not Owner", "Only the bot owner can perform this action.")
+        embed.add_field(name="🚫 Not Owner",
+                        value="Only the bot owner can perform this action.",
+                        inline=False)
     else:
-        embed.add_field("⚠️ General Error", str(error))
+        embed.add_field(name="⚠️ General Error",
+                        value=str(error),
+                        inline=False)
     await ctx.send(embed=embed)
 
 # HELP
@@ -127,15 +137,14 @@ async def help_command(ctx):
 # COMMANDS
 @bot.command(help="Check bot responsiveness.")
 async def ping(ctx):
-    await ctx.send(f"Wanna play 🏓 Pong? {ctx.author.mention}")
+    await ctx.send(f"🏓 Pong! {ctx.author.mention}")
 
 @bot.command(name="8ball", help="Ask the magic 8 ball a question.")
 async def _8ball(ctx, *, question=None):
     choices = ["Yes", "No", "Maybe", "Ask again later"]
     if not question:
-        await ctx.send(f"{ctx.author.mention}, you must ask a question!")
-    else:
-        await ctx.send(f"🎱 {random.choice(choices)}")
+        return await ctx.send(f"{ctx.author.mention}, you must ask a question!")
+    await ctx.send(f"🎱 {random.choice(choices)}")
 
 @bot.command(help="Show basic system info.")
 async def systeminfo(ctx):
@@ -197,11 +206,11 @@ async def userinfo(ctx, member: discord.Member = None):
     member = member or ctx.author
     roles = [r.name for r in member.roles if r.name != "@everyone"]
     embed = discord.Embed(title=f"{member}", color=discord.Color.green())
-    embed.add_field("ID", member.id, inline=True)
-    embed.add_field("Name", member.display_name, inline=True)
-    embed.add_field("Created", member.created_at.strftime("%Y-%m-%d"), inline=False)
-    embed.add_field("Joined", member.joined_at.strftime("%Y-%m-%d"), inline=False)
-    embed.add_field("Roles", ", ".join(roles) or "None", inline=False)
+    embed.add_field(name="ID", value=member.id, inline=True)
+    embed.add_field(name="Name", value=member.display_name, inline=True)
+    embed.add_field(name="Created", value=member.created_at.strftime("%Y-%m-%d"), inline=False)
+    embed.add_field(name="Joined", value=member.joined_at.strftime("%Y-%m-%d"), inline=False)
+    embed.add_field(name="Roles", value=", ".join(roles) or "None", inline=False)
     await ctx.send(embed=embed)
 
 @bot.command(help="Show a user's avatar.")
@@ -215,12 +224,12 @@ async def avatar(ctx, member: discord.Member = None):
 async def serverinfo(ctx):
     g = ctx.guild
     embed = discord.Embed(title=f"Server Info: {g.name}", color=discord.Color.blurple())
-    embed.add_field("ID", g.id)
-    embed.add_field("Owner", g.owner)
-    embed.add_field("Created", g.created_at.strftime("%Y-%m-%d"))
-    embed.add_field("Members", g.member_count)
-    embed.add_field("Roles", len(g.roles))
-    embed.add_field("Channels", len(g.channels))
+    embed.add_field(name="ID", value=g.id, inline=False)
+    embed.add_field(name="Owner", value=g.owner, inline=False)
+    embed.add_field(name="Created", value=g.created_at.strftime("%Y-%m-%d"), inline=False)
+    embed.add_field(name="Members", value=g.member_count, inline=False)
+    embed.add_field(name="Roles", value=len(g.roles), inline=False)
+    embed.add_field(name="Channels", value=len(g.channels), inline=False)
     await ctx.send(embed=embed)
 
 @bot.command(help="Roll dice in NdM format.")
