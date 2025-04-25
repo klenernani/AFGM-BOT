@@ -12,7 +12,7 @@ from threading import Thread
 
 # Constants
 DATA_FILE = 'data.json'
-PRIVATE_CHANNEL_ID = 1166970390900383754  # replace with your channel ID
+PRIVATE_CHANNEL_ID = 1166970390900383754  # zameni sa ID-jem tvog kanala
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
     raise ValueError("DISCORD_BOT_TOKEN is not set in the .env file!")
 
-# Flask server to keep the bot alive on Railway
+# Flask “keep alive”
 app = Flask('')
 @app.route('/')
 def home():
@@ -31,7 +31,7 @@ def keep_alive():
     Thread(target=run).start()
 keep_alive()
 
-# Load persisted data
+# Load persisted last_seen
 if os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'r') as f:
         raw = json.load(f)
@@ -43,23 +43,21 @@ else:
     last_seen = {}
 
 def save_data():
-    to_dump = {
-        'last_seen': {
-            str(uid): [msg, ts.isoformat()]
-            for uid, (msg, ts) in last_seen.items()
-        }
-    }
     with open(DATA_FILE, 'w') as f:
-        json.dump(to_dump, f, indent=2)
+        json.dump({
+            'last_seen': {
+                str(uid): [msg, ts.isoformat()]
+                for uid, (msg, ts) in last_seen.items()
+            }
+        }, f, indent=2)
 
-# Bot setup (disable default help)
+# Bot setup
 intents = discord.Intents.all()
 bot = commands.Bot(
     command_prefix=['-', 'afgm '],
     intents=intents,
     help_command=None
 )
-
 start_time = time.time()
 
 # EVENTS
@@ -70,7 +68,6 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if not message.author.bot:
-        # update last_seen and persist
         last_seen[message.author.id] = (message.content, datetime.utcnow())
         save_data()
         content = message.content.lower()
@@ -80,7 +77,22 @@ async def on_message(message):
             await message.channel.send(f"🚨 {message.author.mention} is marked as AFK.")
     await bot.process_commands(message)
 
-# HELP COMMAND
+@bot.event
+async def on_command_error(ctx, error):
+    embed = discord.Embed(title="⚠️ Error Occurred", color=discord.Color.red())
+    if isinstance(error, commands.MissingPermissions):
+        embed.add_field("❌ Missing Permissions", "You do not have permission to use this command.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        embed.add_field("❓ Missing Argument", "A required argument is missing! Check `-help`.")
+    elif isinstance(error, commands.CommandNotFound):
+        embed.add_field("❓ Unknown Command", "This command does not exist. Use `-help`.")
+    elif isinstance(error, commands.NotOwner):
+        embed.add_field("🚫 Not Owner", "Only the bot owner can perform this action.")
+    else:
+        embed.add_field("⚠️ General Error", str(error))
+    await ctx.send(embed=embed)
+
+# HELP
 @bot.command(name="help", help="Show this help message.")
 async def help_command(ctx):
     embed = discord.Embed(
@@ -89,28 +101,162 @@ async def help_command(ctx):
         color=discord.Color.gold()
     )
     cmds = [
-        ("-help", "Show this help message.\n**Usage:** `-help`"),
-        ("-ping", "Check if the bot is responsive.\n**Usage:** `-ping`"),
-        ("-8ball <question>", "Ask the magic 8 ball a question.\n**Example:** `-8ball Will we win?`"),
-        ("-systeminfo", "Show basic system info.\n**Usage:** `-systeminfo`"),
-        ("-play", "Remind tournament players to play.\n**Usage:** `-play`"),
-        ("-makerole <role_name>", "Create a new role.\n**Example:** `-makerole Admin`"),
-        ("-addrole <member> <role_name>", "Assign a role to a user.\n**Example:** `-addrole @John Admin`"),
-        ("-removeallroles <member>", "Remove all roles from a member.\n**Example:** `-removeallroles @John`"),
-        ("-setowner <member>", "Grant the 'Owner' role to a member.\n**Example:** `-setowner @Nani`"),
-        ("-allow <member> [channel]", "Grant access to private channel.\n**Example:** `-allow @Nani`"),
-        ("-userinfo [member]", "Show user info (or yourself).\n**Example:** `-userinfo @Nani`"),
-        ("-avatar [member]", "Show a user's avatar.\n**Example:** `-avatar @Nani`"),
-        ("-serverinfo", "Display server information.\n**Usage:** `-serverinfo`"),
-        ("-roll [NdM]", "Roll dice (NdM format).\n**Example:** `-roll 2d6`"),
-        ("-choose <opt1> <opt2> [...]", "Choose one option at random.\n**Example:** `-choose tea coffee`"),
-        ("-lastseen [member]", "Show last message from a user.\n**Example:** `-lastseen @Nani`"),
-        ("-uptime", "Show bot uptime.\n**Usage:** `-uptime`"),
-        ("-reboot", "Reboot the bot (owner only).\n**Usage:** `-reboot`"),
+        ("-help", "Show this help message.\nUsage: `-help`"),
+        ("-ping", "Check if the bot is responsive.\nUsage: `-ping`"),
+        ("-8ball <question>", "Ask the magic 8 ball.\nExample: `-8ball Will I win?`"),
+        ("-systeminfo", "Show basic system info.\nUsage: `-systeminfo`"),
+        ("-play", "Remind tournament players.\nUsage: `-play`"),
+        ("-makerole <role_name>", "Create a new role.\nExample: `-makerole Admin`"),
+        ("-addrole <member> <role_name>", "Assign a role.\nExample: `-addrole @User Admin`"),
+        ("-removeallroles <member>", "Remove all roles.\nExample: `-removeallroles @User`"),
+        ("-setowner <member>", "Grant Owner role.\nExample: `-setowner @User`"),
+        ("-allow <member> [channel]", "Unlock private channel.\nExample: `-allow @User`"),
+        ("-userinfo [member]", "Show user info.\nExample: `-userinfo @User`"),
+        ("-avatar [member]", "Show avatar.\nExample: `-avatar @User`"),
+        ("-serverinfo", "Display server info.\nUsage: `-serverinfo`"),
+        ("-roll [NdM]", "Roll dice (NdM).\nExample: `-roll 2d6`"),
+        ("-choose <opt1> <opt2> [...]", "Pick random option.\nExample: `-choose red blue`"),
+        ("-lastseen [member]", "Show last message.\nExample: `-lastseen @User`"),
+        ("-uptime", "Show bot uptime.\nUsage: `-uptime`"),
+        ("-reboot", "Reboot the bot (owner only).\nUsage: `-reboot`"),
     ]
     for name, desc in cmds:
         embed.add_field(name=name, value=desc, inline=False)
     await ctx.send(embed=embed)
+
+# COMMANDS
+@bot.command(help="Check bot responsiveness.")
+async def ping(ctx):
+    await ctx.send(f"Wanna play 🏓 Pong? {ctx.author.mention}")
+
+@bot.command(name="8ball", help="Ask the magic 8 ball a question.")
+async def _8ball(ctx, *, question=None):
+    choices = ["Yes", "No", "Maybe", "Ask again later"]
+    if not question:
+        await ctx.send(f"{ctx.author.mention}, you must ask a question!")
+    else:
+        await ctx.send(f"🎱 {random.choice(choices)}")
+
+@bot.command(help="Show basic system info.")
+async def systeminfo(ctx):
+    await ctx.send("🖥 Running on Python + discord.py")
+
+@bot.command(help="Remind tournament players to play.")
+async def play(ctx):
+    ch = bot.get_channel(1166970462094503936)
+    role = discord.utils.get(ctx.guild.roles, name="League Member - AFGM")
+    if ch and role:
+        await ch.send(f"{role.mention} – 🔔 Reminder to play your matches!")
+    else:
+        await ctx.send("⚠️ Role or channel not found.")
+
+@bot.command(help="Create a new role.")
+@commands.has_permissions(manage_roles=True)
+async def makerole(ctx, *, role_name):
+    if discord.utils.get(ctx.guild.roles, name=role_name):
+        return await ctx.send(f"⚠️ Role `{role_name}` already exists.")
+    await ctx.guild.create_role(name=role_name)
+    await ctx.send(f"✅ Role `{role_name}` created.")
+
+@bot.command(help="Assign a role to a member.")
+@commands.has_permissions(manage_roles=True)
+async def addrole(ctx, member: discord.Member, *, role_name):
+    role = discord.utils.get(ctx.guild.roles, name=role_name)
+    if not role:
+        return await ctx.send(f"⚠️ Role `{role_name}` not found.")
+    await member.add_roles(role)
+    await ctx.send(f"✅ Assigned `{role_name}` to {member.mention}.")
+
+@bot.command(help="Remove all roles from a member.")
+@commands.has_permissions(manage_roles=True)
+async def removeallroles(ctx, member: discord.Member):
+    roles = [r for r in member.roles if r != ctx.guild.default_role]
+    if not roles:
+        return await ctx.send(f"⚠️ {member.mention} has no roles.")
+    await member.remove_roles(*roles)
+    await ctx.send(f"🧹 Removed all roles from {member.mention}.")
+
+@bot.command(help="Grant the 'Owner' role to a member.")
+@commands.has_permissions(manage_roles=True)
+async def setowner(ctx, member: discord.Member):
+    role = discord.utils.get(ctx.guild.roles, name="Owner")
+    if not role:
+        role = await ctx.guild.create_role(name="Owner", permissions=discord.Permissions.all())
+    await member.add_roles(role)
+    await ctx.send(f"✅ {member.mention} is now an Owner.")
+
+@bot.command(help="Allow a member into a private channel.")
+@commands.has_permissions(manage_channels=True)
+async def allow(ctx, member: discord.Member, channel: discord.TextChannel = None):
+    channel = channel or bot.get_channel(PRIVATE_CHANNEL_ID)
+    await channel.set_permissions(member, read_messages=True, send_messages=True)
+    await ctx.send(f"✅ {member.mention} can now see {channel.mention}.")
+
+@bot.command(help="Show user info.")
+async def userinfo(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    roles = [r.name for r in member.roles if r.name != "@everyone"]
+    embed = discord.Embed(title=f"{member}", color=discord.Color.green())
+    embed.add_field("ID", member.id, inline=True)
+    embed.add_field("Name", member.display_name, inline=True)
+    embed.add_field("Created", member.created_at.strftime("%Y-%m-%d"), inline=False)
+    embed.add_field("Joined", member.joined_at.strftime("%Y-%m-%d"), inline=False)
+    embed.add_field("Roles", ", ".join(roles) or "None", inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command(help="Show a user's avatar.")
+async def avatar(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    embed = discord.Embed(title=f"{member.display_name}'s Avatar", color=discord.Color.purple())
+    embed.set_image(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+    await ctx.send(embed=embed)
+
+@bot.command(help="Display server info.")
+async def serverinfo(ctx):
+    g = ctx.guild
+    embed = discord.Embed(title=f"Server Info: {g.name}", color=discord.Color.blurple())
+    embed.add_field("ID", g.id)
+    embed.add_field("Owner", g.owner)
+    embed.add_field("Created", g.created_at.strftime("%Y-%m-%d"))
+    embed.add_field("Members", g.member_count)
+    embed.add_field("Roles", len(g.roles))
+    embed.add_field("Channels", len(g.channels))
+    await ctx.send(embed=embed)
+
+@bot.command(help="Roll dice in NdM format.")
+async def roll(ctx, dice: str = "1d6"):
+    try:
+        rolls, limit = map(int, dice.lower().split("d"))
+        results = [random.randint(1, limit) for _ in range(rolls)]
+        await ctx.send(f"🎲 You rolled: {', '.join(map(str, results))}")
+    except:
+        await ctx.send("⚠️ Use NdM format (e.g. `-roll 2d6`)")
+
+@bot.command(help="Choose one option at random.")
+async def choose(ctx, *options: str):
+    if len(options) < 2:
+        return await ctx.send("❗ Provide at least two options.")
+    await ctx.send(f"🤔 I choose: **{random.choice(options)}**")
+
+@bot.command(help="Show last message from a user.")
+async def lastseen(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    msg, ts = last_seen.get(member.id, ("No messages", "Never"))
+    await ctx.send(f"🕵️ Last seen for {member.display_name}: \"{msg}\" at {ts}")
+
+@bot.command(help="Show bot uptime.")
+async def uptime(ctx):
+    delta = int(time.time() - start_time)
+    h, rem = divmod(delta, 3600)
+    m, s = divmod(rem, 60)
+    await ctx.send(f"⏱ Uptime: {h}h {m}m {s}s")
+
+@bot.command(help="Reboot the bot (owner only).")
+@commands.is_owner()
+async def reboot(ctx):
+    await ctx.send("🔄 Rebooting...")
+    await bot.close()
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 # Start the bot
 bot.run(TOKEN)
