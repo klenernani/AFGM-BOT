@@ -13,7 +13,7 @@ from threading import Thread
 
 # 📁 Constants
 DATA_FILE = 'data.json'
-PRIVATE_CHANNEL_ID = 1166970390900383754  # REPLACE with your private channel ID
+ANNOUNCE_CHANNEL_ID = 1166970462094503936  # kanal za boot-up poruku
 
 # 🔑 Loading TOKEN
 load_dotenv()
@@ -36,6 +36,15 @@ def keep_alive():
 
 keep_alive()
 
+# 🤖 Bot Setup
+intents = discord.Intents.all()
+bot = commands.Bot(
+    command_prefix=['-', 'afgm '],
+    intents=intents,
+    help_command=None
+)
+start_time = time.time()
+
 # 💾 Loading previous data
 if os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'r') as f:
@@ -54,15 +63,6 @@ def save_data():
             for uid, (msg, ts) in last_seen.items()
         }}, f, indent=2)
 
-# 🤖 Bot Setup
-intents = discord.Intents.all()
-bot = commands.Bot(
-    command_prefix=['-', 'afgm '],
-    intents=intents,
-    help_command=None
-)
-start_time = time.time()
-
 # 🔍 Checking ROLE
 def is_league_admin():
     async def predicate(ctx):
@@ -74,6 +74,13 @@ def is_league_admin():
 @bot.event
 async def on_ready():
     print(f"🟢 Bot is ready as {bot.user}")
+
+    # Izabrani kanal gde bot šalje poruku
+    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+    if channel:
+        await channel.send("🚀 **Bot is up and ready!!**")
+    else:
+        print("⚠️ Kanal nije pronađen!")
 
 @bot.event
 async def on_message(message):
@@ -145,7 +152,7 @@ async def help_command(ctx):
     await ctx.send(embed=embed)
 
 # 🛠️ Basic Commands
-@bot.command(help='Ask bot is he ready to serve.')
+@bot.command(help='Ask bot if he is ready to serve.')
 async def ping(ctx):
     await ctx.send(embed=discord.Embed(
         description=f" **I'm ready to serve** :saluting_face: {ctx.author.mention}",
@@ -171,3 +178,7 @@ async def systeminfo(ctx):
         description='🖥 **Bot runs on Python + discord.py for any help ask @n00b **',
         color=discord.Color.teal()
     ))
+
+# 🔥 Start the bot
+if __name__ == '__main__':
+    bot.run(TOKEN)
