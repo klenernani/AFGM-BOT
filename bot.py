@@ -122,16 +122,16 @@ async def userinfo(ctx, member: discord.Member = None):
     created = member.created_at.strftime("%Y-%m-%d %H:%M:%S")
     embed = discord.Embed(title=f"Info za {member}", color=discord.Color.green())
     embed.add_field(name="ID", value=member.id, inline=True)
-    embed.add_field(name="Ime na serveru", value=member.display_name, inline=True)
-    embed.add_field(name="Nalog kreiran", value=created, inline=False)
-    embed.add_field(name="Pridružio se", value=joined, inline=False)
-    embed.add_field(name="Uloge", value=", ".join(roles) if roles else "Nema", inline=False)
+    embed.add_field(name="Nick", value=member.display_name, inline=True)
+    embed.add_field(name="Created", value=created, inline=False)
+    embed.add_field(name="Joined", value=joined, inline=False)
+    embed.add_field(name="Roles", value=", ".join(roles) if roles else "Nema", inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
 async def avatar(ctx, member: discord.Member = None):
     member = member or ctx.author
-    await ctx.send(f"🖼 Avatar korisnika {member.mention}: {member.avatar.url if member.avatar else 'Nema avatara.'}")
+    await ctx.send(f"🖼 Avatar  {member.mention}: {member.avatar.url if member.avatar else 'Nema avatara.'}")
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -150,11 +150,11 @@ async def serverinfo(ctx):
     embed = discord.Embed(title=f"📊 Info o serveru: {guild.name}", color=discord.Color.blurple())
     embed.set_thumbnail(url=guild.icon.url if guild.icon else discord.Embed.Empty)
     embed.add_field(name="ID", value=guild.id)
-    embed.add_field(name="Vlasnik", value=guild.owner)
-    embed.add_field(name="Kreiran", value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"))
-    embed.add_field(name="Članova", value=guild.member_count)
-    embed.add_field(name="Uloga", value=len(guild.roles))
-    embed.add_field(name="Kanala", value=len(guild.channels))
+    embed.add_field(name="Owner", value=guild.owner)
+    embed.add_field(name="Created", value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"))
+    embed.add_field(name="Members", value=guild.member_count)
+    embed.add_field(name="Roles", value=len(guild.roles))
+    embed.add_field(name="Channel", value=len(guild.channels))
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -166,7 +166,7 @@ async def roll(ctx, dice: str = "1d6"):
         return
 
     results = [random.randint(1, limit) for _ in range(rolls)]
-    await ctx.send(f"🎲 Rezultati: {', '.join(str(r) for r in results)} | Ukupno: {sum(results)}")
+    await ctx.send(f"🎲 Scores: {', '.join(str(r) for r in results)} | All: {sum(results)}")
 
 @bot.command()
 async def choose(ctx, *choices: str):
