@@ -29,13 +29,13 @@ def save_data():
             }
         }, f, indent=2)
 
-# 🔑 Load token
+# 🔑 Load .env token
 load_dotenv()
-TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
-    raise ValueError('❗ DISCORD_BOT_TOKEN is not set in the .env file!')
+    raise ValueError("❗ DISCORD_BOT_TOKEN is not set in the .env file!")
 
-# 🌐 Keep bot alive
+# 🌐 Keep bot alive (for hosting on Railway or Replit)
 app = Flask('')
 
 @app.route('/')
@@ -153,6 +153,11 @@ async def uptime_command(ctx):
     await ctx.send(embed=embed)
 
 # 🏁 Match reminders
+async def send_tournament_message(message, ctx):
+    tournament_channel = bot.get_channel(TOURNAMENT_CHANNEL_ID)
+    await tournament_channel.send(message)
+    await ctx.send("✅ Message sent!")
+
 @bot.command(name='play')
 async def play_command(ctx):
     await send_tournament_message("🔔 Players who haven't played yet, finish your matches before the tournament ends!", ctx)
@@ -176,11 +181,6 @@ async def playrelax_command(ctx):
 @bot.command(name='playurgent')
 async def playurgent_command(ctx):
     await send_tournament_message("🚨 URGENT: Play your match now! Deadline is approaching!", ctx)
-
-async def send_tournament_message(message, ctx):
-    tournament_channel = bot.get_channel(TOURNAMENT_CHANNEL_ID)
-    await tournament_channel.send(message)
-    await ctx.send("✅ Message sent!")
 
 # 🖼️ User avatar
 @bot.command(name='avatar')
@@ -225,3 +225,6 @@ async def last_seen_command(ctx, user: discord.User = None):
             color=discord.Color.red()
         )
     await ctx.send(embed=embed)
+
+# 🏁 Start the bot
+bot.run(TOKEN)
