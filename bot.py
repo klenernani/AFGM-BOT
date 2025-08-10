@@ -1,23 +1,30 @@
 # 📜 Import libraries
 import os
-import sys
 import time
 import random
 import json
 import discord
 from discord.ext import commands
-from discord import ui
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
-import requests
-from bs4 import BeautifulSoup
 
 # 📁 Constant values
 DATA_FILE = 'data.json'
 ANNOUNCE_CHANNEL_ID = 1166970462094503936
 TOURNAMENT_CHANNEL_ID = 1166970462094503936
+
+# 💾 Load previous data i definicija last_seen pre save_data()
+if os.path.exists(DATA_FILE):
+    with open(DATA_FILE, 'r') as f:
+        raw = json.load(f)
+    last_seen = {
+        int(uid): (msg, datetime.fromisoformat(ts))
+        for uid, (msg, ts) in raw.get('last_seen', {}).items()
+    }
+else:
+    last_seen = {}
 
 # 💾 Function to save data
 def save_data():
@@ -59,28 +66,19 @@ bot = commands.Bot(
 )
 start_time = time.time()
 
-# 💾 Load previous data
-if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, 'r') as f:
-        raw = json.load(f)
-    last_seen = {
-        int(uid): (msg, datetime.fromisoformat(ts))
-        for uid, (msg, ts) in raw.get('last_seen', {}).items()
-    }
-else:
-    last_seen = {}
-
 # 🚀 Bot is ready
 @bot.event
 async def on_ready():
     print(f'✅ Logged in as {bot.user}')
-    await bot.get_channel(ANNOUNCE_CHANNEL_ID).send(
-        embed=discord.Embed(
-            title="✅ Bot is now online!",
-            description="Everything is running perfectly!",
-            color=discord.Color.green()
+    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+    if channel:
+        await channel.send(
+            embed=discord.Embed(
+                title="✅ Bot is now online!",
+                description="Everything is running perfectly!",
+                color=discord.Color.green()
+            )
         )
-    )
 
 # 📥 Message listener
 @bot.event
@@ -155,8 +153,11 @@ async def uptime_command(ctx):
 # 🏁 Match reminders
 async def send_tournament_message(message, ctx):
     tournament_channel = bot.get_channel(TOURNAMENT_CHANNEL_ID)
-    await tournament_channel.send(message)
-    await ctx.send("✅ Message sent!")
+    if tournament_channel:
+        await tournament_channel.send(message)
+        await ctx.send("✅ Message sent!")
+    else:
+        await ctx.send("❗ Tournament channel not found!")
 
 @bot.command(name='play')
 async def play_command(ctx):
@@ -190,22 +191,9 @@ async def avatar_command(ctx, user: discord.User = None):
         title=f"🖼️ {user.name}'s Avatar",
         color=discord.Color.blue()
     )
-    embed.set_image(url=user.avatar.url)
+    # koristi display_avatar za sigurnije dobijanje avatara
+    embed.set_image(url=user.display_avatar.url)
     await ctx.send(embed=embed)
-
-# 🔎 Google search
-@bot.command(name='google')
-async def google_command(ctx, *, topic: str):
-    search_url = f"https://www.google.com/search?q={topic}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    response = requests.get(search_url, headers=headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    search_result = soup.find('h3')
-    if search_result:
-        link = search_result.find_parent('a')['href']
-        await ctx.send(f"🔎 Top result for **{topic}**: {link}")
-    else:
-        await ctx.send(f"❗ No results found for **{topic}**.")
 
 # 🛡️ Last user activity
 @bot.command(name='lastseen')
@@ -228,3 +216,4 @@ async def last_seen_command(ctx, user: discord.User = None):
 
 # 🏁 Start the bot
 bot.run(TOKEN)
+
